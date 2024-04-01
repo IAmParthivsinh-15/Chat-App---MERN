@@ -31,6 +31,7 @@ const useSearchFriend = () => {
                 toast.error("No Such User Found!");
                 return;
             }
+            toast.success("user has been found :)")
         } catch (error) {
             toast.error("Error in searching new friend");
         }
