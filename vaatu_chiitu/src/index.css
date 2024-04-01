@@ -1,0 +1,102 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+    /* Hide scrollbar for Chrome, Safari and Opera */
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+
+.inter600 {
+  font-family: "Inter", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 600;
+  font-style: normal;
+  font-variation-settings:
+    "slnt" 0;
+}
+
+.inter400 {
+    font-family: "Inter", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 400;
+    font-style: normal;
+    font-variation-settings:
+      "slnt" 0;
+  }
+
+  .nunito-sans700{
+    font-family: "Nunito Sans", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 700;
+    font-style: normal;
+    font-variation-settings:
+      "wdth" 100,
+      "YTLC" 500;
+  }
+
+  .nunito-sans400{
+    font-family: "Nunito Sans", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 400;
+    font-style: normal;
+    font-variation-settings:
+      "wdth" 100,
+      "YTLC" 500;
+  }
+
+  .nunito-sans600{
+    font-family: "Nunito Sans", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 600;
+    font-style: normal;
+    font-variation-settings:
+      "wdth" 100,
+      "YTLC" 500;
+  }
+
+  #radio1{
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    display: inline-block;
+    box-shadow: 0px -0.6487834453582764px 0.6487834453582764px 0px rgba(255, 255, 255, 0.35) inset, 1.2975668907165527px 2.5951337814331055px 2.5951337814331055px -0.6487834453582764px rgba(0, 0, 0, 0.25) inset;  ;
+    appearance:none;
+    background-clip: content-box;
+    border-radius:50%;
+    width: 16px;
+    height:16px;
+    background-color: rgba(37, 37, 37, 1);
+    transition:all ease-in 0.2s;
+  
+  }
+  #radio1:checked{
+    background-color: white;
+    padding: 3px;
+  }
+
+  #radio2{
+    border: 1px solid black;
+    -moz-appearance: none;
+    appearance: none;
+    display: inline-block;
+    appearance:none;
+    background-clip: content-box;
+    border-radius:50%;
+    width: 16px;
+    height:16px;
+    background-color: white;
+    transition:all ease-in 0.2s;
+  
+  }
+  #radio2:checked{
+    background-color: black;
+    padding: 1.5px;
+  }
+
+  #loading{
+    filter: none;
+  }
