@@ -4,7 +4,7 @@ import { useEffect } from "react";
 
 const useSearchFriend = () => {
     const { friendSearchUser, setFriendSearchUser } = useConversation();
-
+    let message = "";
     const searchFriend = async ({ username }) => {
         try {
             console.log("in func");
@@ -31,9 +31,11 @@ const useSearchFriend = () => {
                 toast.error("No Such User Found!");
                 return;
             }
-            toast.success("user has been found :)")
+            toast.success(data.message)
+            message = data.message;
         } catch (error) {
             toast.error("Error in searching new friend");
+            message = data.message;
         }
     };
 
@@ -43,7 +45,7 @@ const useSearchFriend = () => {
         }
     }, [friendSearchUser?._id]);
 
-    return { searchFriend };
+    return { searchFriend , message};
 };
 
 export default useSearchFriend;

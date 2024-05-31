@@ -113,7 +113,7 @@ export const searchUserByUsername = async (req, res) => {
     };
 
     return res.status(200).json({
-      message: `User Has Been Found :- MainUser=${req.user._id} MainUserName=${req.user.username}  `,
+      message: `User Has Been Found`,
       responseData,
     });
   } catch (error) {
@@ -209,6 +209,8 @@ export const sendRequest = async (req, res) => {
     if (!mainUser) {
       return res.status(404).json({ message: "User not found" });
     }
+
+    console.log("both user's ids : " , friendUserId , " " , mainUser._id)
 
     if (friendUserId === mainUser._id.toString()) {
       return res

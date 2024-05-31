@@ -15,6 +15,7 @@ import { useAuthContext } from "../context/AuthContext.jsx";
 import { toast } from "react-toastify";
 import useSearchFriend from "../hooks/useSearchFriend.js";
 import useConversation from "../zustand/useConversation.js";
+import useSendReq from "../hooks/useSendReq.js";
 
 const Home = () => {
   const { friendSearchUser, setFriendSearchUser } = useConversation();
@@ -25,9 +26,7 @@ const Home = () => {
   console.log(conversation ? "Conversations are there" : "empty array");
   console.log(conversation);
 
-  {
-    /* -- User Whose Chet You Open -- */
-  }
+ 
   const user = {
     id: 1,
     name: "Tirth Patel",
@@ -116,22 +115,22 @@ const Home = () => {
     };
   }, [menuRef, buttonRef]);
 
-  const { searchFriend } = useSearchFriend();
+  const { searchFriend , message } = useSearchFriend();
+  const { sendReq } = useSendReq();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // try {
-    console.log("started");
     await searchFriend({ username });
-    // } catch (error) {
-    //   toast.error("error in fetching user for frnd req")
-    // }
   };
   console.log(username);
 
-  useEffect(()=>{
-    
-  })
+  useEffect(() => {});
+
+  const handleSendReq = async (e)=>{
+    e.preventDefault();
+    await sendReq({friendSearchUser})
+
+  }
 
   return (
     <div>
@@ -209,23 +208,39 @@ const Home = () => {
                   />
                 </form>
 
-                <div className=" relative flex h-[11.4454%] w-full mt-2">
-                  <img
-                    src={friendSearchUser?.profilepic}
-                    className=" w-[45px] h-[45px] rounded-full mt-2 ml-6"
-                  />
-                  <div className=" flex flex-col pl-4 my-auto">
-                    <p className=" leading-[26px] text-[20px] inter400 text-[#FFFFFFE5] opacity-90 mt-4 tracking-[0.01em]">
-                      {friendSearchUser?.nameOfUser}
-                    </p>
+                {friendSearchUser?.responseData ? (
+                  <div className=" relative flex h-[11.4454%] w-full mt-2">
+                    <img
+                      src={friendSearchUser?.responseData?.profilepic}
+                      className=" w-[45px] h-[45px] rounded-full mt-2 ml-6"
+                    />
+                    <div className=" flex flex-col pl-4 my-auto">
+                      <p className=" leading-[26px] text-[20px] inter400 text-[#FFFFFFE5] opacity-90 mt-4 tracking-[0.01em]">
+                        {friendSearchUser?.responseData?.nameOfUser}
+                      </p>
+                    </div>
+                    <div className="absolute h-[25px] w-[65px] top-4 right-6 cursor-pointer hover:bg-gradient-to-r from-[#FF981B] to-[#FC236C] hover:scale-110 transition-all duration-200 bg-[#1C85ED] rounded-full flex shadow-[inset_0px_-0.7302268743515015px_0.7302268743515015px_0px_#FFFFFF59,inset_1.460453748703003px_2.920907497406006px_2.920907497406006px_-0.7302268743515015px_#00000040]"
+                    onClick={handleSendReq}
+                    >
+                      <p className=" text-white ml-3 mt-[2.5px] text-[13px]">
+                        Add
+                      </p>
+                      <HiUserAdd className=" mt-[4.5px] scale-105 text-white ml-1" />
+                    </div>
                   </div>
-                  <div className="absolute h-[25px] w-[65px] top-4 right-6 cursor-pointer hover:bg-gradient-to-r from-[#FF981B] to-[#FC236C] hover:scale-110 transition-all duration-200 bg-[#1C85ED] rounded-full flex shadow-[inset_0px_-0.7302268743515015px_0.7302268743515015px_0px_#FFFFFF59,inset_1.460453748703003px_2.920907497406006px_2.920907497406006px_-0.7302268743515015px_#00000040]">
-                    <p className=" text-white ml-3 mt-[2.5px] text-[13px]">
-                      Add
-                    </p>
-                    <HiUserAdd className=" mt-[4.5px] scale-105 text-white ml-1" />
+                ) : (
+                  <div>
+                    {username ? (
+                      <div>
+                        {
+                          message
+                        }
+                      </div>
+                    ) : (
+                      <div></div>
+                    )}
                   </div>
-                </div>
+                )}
 
                 <p className="mt-12 ml-4 inter600 leading-[27px] text-[22px] text-[#FFFFFF]">
                   Pending Requests
