@@ -7,9 +7,7 @@ const useSearchFriend = () => {
     let message = "";
     const searchFriend = async ({ username }) => {
         try {
-            console.log("in func");
             const token = localStorage.getItem('token');
-            console.log("token in usesrchfrnd ", token);
             const res = await fetch('http://localhost:5000/api/users/searchuser', {
                 method: 'POST',
                 headers: {
@@ -18,15 +16,12 @@ const useSearchFriend = () => {
                 },
                 body: JSON.stringify({ username }),
             });
-            console.log("done");
             const data = await res.json();
-            console.log("new user: ", data);
             if (data.error) {
                 toast.error("Error Occurred in Searching User");
                 return;
             }
             setFriendSearchUser(data);
-            console.log("friendSearchUser: ", friendSearchUser);
             if (data.length === 0 || data === null) {
                 toast.error("No Such User Found!");
                 return;

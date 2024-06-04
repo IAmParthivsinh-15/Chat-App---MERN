@@ -7,6 +7,8 @@ const useConversation = create((set) => ({
     setFriendSearchUser :(friendSearchUser) => set({friendSearchUser}),
     messages : [],
     setMessages : (messages) => set({messages}),
+    pendingReqs : [],
+    setPendingReq : (pendingReqs) => set({pendingReqs}),
 }))
 
 export default useConversation

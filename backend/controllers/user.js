@@ -233,27 +233,34 @@ export const sendRequest = async (req, res) => {
         .json({ message: "User is already in the friendList." });
     }
 
-    const existingRequest =
-      mainUser.friendRequestsSent &&
-      mainUser.friendRequestsSent.find(
-        (request) =>
-          request?.receiverId?.toString() === friendUserId &&
-          request.status === "pending"
-      );
+    // const existingRequest =
+    //   mainUser.friendRequestsSent &&
+    //   mainUser.friendRequestsSent.find(
+    //     (request) =>
+    //       request.receiverId.toString() === friendUserId &&
+    //       request.status === "pending"
+    //   );
+
+      const existingRequest = await FriendRequest.findOne({
+        senderId: mainUser._id,
+       receiverId: friendUserId
+      })
+    
+    console.log("exe req : " , existingRequest)
 
     if (existingRequest) {
+      console.log("entered")
       return res
         .status(409)
         .json({ message: `Request already sent | Req Status : Pending` });
     }
-
+    console.log("out")
     const frndReq = new FriendRequest({
       senderId: mainUser._id,
       receiverId: friendUserId,
       status: "pending",
     });
 
-    console.log("Main user:", mainUser);
     console.log("Main user friendRequestsSent:", mainUser.friendRequestsSent);
 
     if (!mainUser.friendRequestsSent) {
@@ -268,7 +275,7 @@ export const sendRequest = async (req, res) => {
     await friendUser.save();
 
     return res.status(200).json({
-      message: `Friend Request Has Been Sent To The User Successfully: Sender:${mainUser._id} Receiver:${friendUserId}`,
+      message: `Friend Request Has Been Sent To The User Successfully`,
     });
   } catch (error) {
     console.log("Error in sendRequest controller: ", error);
@@ -632,5 +639,32 @@ export const editProfile = async (req, res) => {
   } catch (error) {
     console.error("Error in edit profile:", error);
     return res.status(500).send("Server Error");
+  }
+};
+
+// -------------
+export const pendingReq = async (req, res) => {
+  try {
+    const userId = req.params.id; 
+    console.log("started")
+    
+    const friendRequests = await FriendRequest.find({ receiverId: userId });
+
+    const senderIds = friendRequests.map(request => request.senderId);
+
+    const senders = await User.find({ _id: { $in: senderIds } }, 'username profilePic');
+
+    // Construct the result array
+    const result = senders.map(sender => ({
+      id: sender._id,
+      username: sender.username,
+      profilePic: sender.profilePic,
+    }));
+
+    console.log("ended")
+    return res.status(200).json(result);
+  } catch (error) {
+    console.log("Error in fetching pending requests", error);
+    return res.status(500).json({ error: "Error in fetching pending requests" });
   }
 };

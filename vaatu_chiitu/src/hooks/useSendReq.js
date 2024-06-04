@@ -18,7 +18,7 @@ const useSendReq = () => {
         const data = await res.json();
         console.log(data)
         if(data){
-            toast.success("Request Sent Successfully..")
+            toast.success(data.message)
         }
         else{
             toast.error("some error may be..")
