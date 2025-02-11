@@ -1,4 +1,4 @@
-# 🛡️ Real Time Chat Application Using MERN Stack - VaatuChitu.com
+# 🛡️ Real Time Chat Application Using MERN Stack - VaatuChitu.com (Backend And Frontend Both Are Availabe But Not Connected)
 
 This project is a complete authentication and user management system that covers everything from signup and email verification to password reset and route protection. The frontend is built with React.js, Tailwind CSS, and several modern UI libraries, while the backend is powered by Node.js, Express.js, and MongoDB Atlas.
 
