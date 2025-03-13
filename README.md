@@ -96,4 +96,9 @@ npm run dev
 
 ![image](https://github.com/user-attachments/assets/dd057e71-30f2-4951-a25f-3b69a5342d75)
 
+### Real Time Logging For Monitoring The Activities For Security Purpose 
+
+![image](https://github.com/user-attachments/assets/3a0f9acb-9cfa-4b4e-b105-4d67493542c2)
+
+
 
