@@ -56,16 +56,16 @@ export const signup = async (req, res) => {
     console.log("profilepic ended")
 
     console.log("cloudinary started")
-    let result= ""
-    try {
-     result = await cloudinary?.uploader?.upload(profilePic);
-    } catch (error) {
-      console.log("error in result/cloudinary : " , error)
-      return res.json({message:"error in uploading  image to clodinary",error});
-    }
-    console.log(`cloudinary uploaded : ${result}`);
-    const profilePicUrl = result?.secure_url;
-    console.log("cloudinary ended")
+    // let result= ""
+    // try {
+    //  result = await cloudinary?.uploader?.upload(profilePic);
+    // } catch (error) {
+    //   console.log("error in result/cloudinary : " , error)
+    //   return res.json({message:"error in uploading  image to clodinary",error});
+    // }
+    // console.log(`cloudinary uploaded : ${result}`);
+    // const profilePicUrl = result?.secure_url;
+    // console.log("cloudinary ended")
 
 
     // Validate email
@@ -190,7 +190,8 @@ export const signup = async (req, res) => {
       email,
       password: hashedPassword,
       gender,
-      profilePic: profilePicUrl,
+      profilePic
+      // profilePic: profilePicUrl,
       // bio
     });
     console.log("user creation done")
@@ -227,14 +228,6 @@ export const signup = async (req, res) => {
     return res.status(500).json({ error: "Internal Server Error" });
   }
 };
-
-export const xyz = async (req , res)=>{
-  try{
-
-  }catch(err){
-    
-  }
-}
 
 /// -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 

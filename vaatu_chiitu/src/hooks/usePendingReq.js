@@ -6,8 +6,9 @@ import { useEffect } from 'react';
 const usePendingReq = () => {
     const { authUser } = useAuthContext();
     const { pendingReqs, setPendingReq } = useConversation();
-    
+    console.log("ubo")
     const pendingReq = async () => {
+        console.log("ind")
         try {
             const token = localStorage.getItem('token');
             const res = await fetch(`http://localhost:5000/api/users/allpendingrequests/${authUser._id}`, {
@@ -29,7 +30,7 @@ const usePendingReq = () => {
         }
     };
 
-    return { pendingReq };
+    return pendingReq ;
 
 
 };

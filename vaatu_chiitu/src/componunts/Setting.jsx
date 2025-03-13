@@ -9,7 +9,7 @@ const Setting = ({user, setEditProfile}) => {
             </div>
 
             <div className='relative w-[92%] py-3 pl-4 ease-in h-[85px] flex rounded-xl bg-[#4D4D4D] mt-5 ml-[4%] mr-[4%]'>
-                <img src={user.profilepic} className=' rounded-full w-[55px] h-[55px] my-auto ml-2' />
+                <img src={user.profilePic} className=' rounded-full w-[55px] h-[55px] my-auto ml-2' />
                 <div className=' flex flex-col pl-4 my-auto'>
                     <p className=' leading-[25px] text-[23px] inter600 text-[#FFFFFFE5] opacity-90 mt-1 tracking-[0.01em]'>
                         {user.username}

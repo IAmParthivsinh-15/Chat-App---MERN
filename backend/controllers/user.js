@@ -406,6 +406,7 @@ export const verifyOtp = async (req, res) => {
     }
 
     if (otpDoc.otp !== otp) {
+      
       return res.status(401).json({ message: "Invalid OTP" });
     }
 

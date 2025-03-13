@@ -23,6 +23,7 @@ const useLogin = () => {
 			data.message ="login"
 
 			localStorage.setItem("chat-user", JSON.stringify(data));
+			localStorage.setItem("token" , data.token)
 			console.log("data in uselogin" , data)
 			// data.message = 'from use login '
             console.log("authUser in uselogin b: ",authUser)

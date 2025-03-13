@@ -29,7 +29,7 @@ const Home = () => {
   const [addFriend, setAddFriend] = useState(false);
   const menuRef = useRef(null);
   const buttonRef = useRef(null);
-
+  const [datafetch, setDataFetch] = useState(false);
   useEffect(() => {
     function handleClickOutside(event) {
       if (
@@ -51,19 +51,22 @@ const Home = () => {
 
   const { searchFriend, message } = useSearchFriend();
   const { sendReq } = useSendReq();
-  const { pendingReq } = usePendingReq();
+  const pendingReq = usePendingReq();
 
   // useEffect(() => {
   //   pendingReq();
+  // console.log(datasPend)
   // }, []);
-  const requests = { ...pendingReqs };
+  // const requests = { ...pendingReqs };
 
-  useEffect(()=>{
-    const handlePendingReqs = async (e) => {
-      e.preventDefault();
-      await pendingReq(); 
+  useEffect(() => {
+    const handlePendingReqs = async () => {
+      if (datafetch) {
+        const datas = await pendingReq();
+      }
     };
-  })
+    handlePendingReqs();
+  }, [datafetch]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -71,7 +74,7 @@ const Home = () => {
   };
   console.log(username);
 
-  useEffect(() => {});
+  // useEffect(() => {});
 
   const handleSendReq = async (e) => {
     e.preventDefault();
@@ -134,7 +137,7 @@ const Home = () => {
         {addFriend && (
           <div
             ref={menuRef}
-            onClick={handlePendingReqs}
+            onClick={() => setDataFetch((prev) => !prev)}
             className=" absolute flex-col bg-[#404040] h-[500px] w-[360px] z-50 rounded-lg left-[23.4%] top-[12%] shadow-[inset_0px_-0.8169865012168884px_0.8169865012168884px_0px_#FFFFFF59,inset_1.6339730024337769px_3.2679460048675537px_3.2679460048675537px_-0.8169865012168884px_#00000040,2px_4px_4px_0px_#00000040]  overflow-y-auto no-scrollbar"
           >
             <div className=" relative  h-full w-full">
@@ -186,7 +189,7 @@ const Home = () => {
               </div>
 
               <div className="mt-[58%]">
-                {requests && requests.length > 0 && (
+                {requests && requests?.length > 0 && (
                   <div
                     key={requests[0].id}
                     className="relative flex h-[11.4454%] w-full mt-2"

@@ -3,9 +3,9 @@ import User from "../model/user.js";
 
 const protectRoutes = async (req, res, next) => {
   try {
-    let token =  req.header("Authorization")?.replace("Bearer ","");
+    let token = req.header("Authorization")?.replace("Bearer ", "") || req.cookies.jwt;
     // console.log("authori",req.header("Authorization"))
-    // console.log("token : " , token )
+    console.log("token : " , token )
     if (!token) {
       return res.status(401).send({
         error: "Authentication Failed - Token Not Found",
