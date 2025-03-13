@@ -1,10 +1,10 @@
 import FriendRequest from "../model/friendRequestSchema.js";
 import User from "../model/user.js";
-import Conversation from "../model/conversation.js"
+import Conversation from "../model/conversation.js";
 import nodemailer from "nodemailer";
 import bcrypt from "bcrypt";
 import Otp from "../model/otp.js";
-import {logger} from "../utils/logger.js";
+import { logger } from "../utils/logger.js";
 
 export const validateEmail = (email) => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -26,16 +26,15 @@ const validatePassword = (password, confirmPassword) => {
 
   return { isValid: true, message: "Password is valid" };
 };
+
 //-------------------------------------USER REGISTRATION---------------
 
+//For SideBar Fetching All Friends
 export const FriendOfUser = async (req, res) => {
   try {
-    console.log("in sidebar/friends");
     const userId = req.user._id;
-    console.log("username : ", req.user.username);
-    console.log(userId);
     const user = await User.findById(userId);
-    console.log(user);
+
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
@@ -49,14 +48,16 @@ export const FriendOfUser = async (req, res) => {
       const friendData = await User.findById(friend.userId).select("-password");
       if (friendData) {
         const conversation = await Conversation.findOne({
-          participants: { $all: [userId, friend.userId] }
-        }).sort({ createdAt: -1 }).populate('lastMessage.senderId');
-        
+          participants: { $all: [userId, friend.userId] },
+        })
+          .sort({ createdAt: -1 })
+          .populate("lastMessage.senderId");
+
         let lastMessage = null;
         if (conversation && conversation.lastMessage) {
           lastMessage = {
             message: conversation.lastMessage.message,
-            senderId: conversation.lastMessage.senderId._id
+            senderId: conversation.lastMessage.senderId._id,
           };
         }
 
@@ -66,13 +67,10 @@ export const FriendOfUser = async (req, res) => {
           fullname: friendData.fullname,
           profilePic: friendData.profilePic,
           lastMessage: lastMessage,
-          bio:friendData.bio
-
+          bio: friendData.bio,
         });
       }
     }
-
-    console.log(friendsData)
 
     return res.status(200).json(friendsData);
   } catch (error) {
@@ -82,14 +80,14 @@ export const FriendOfUser = async (req, res) => {
 };
 
 /// -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-// for req friend search
+
+// For Searching Friend In Search Bar (Not In Friend List)
 export const searchUserByUsername = async (req, res) => {
   try {
-    console.log("started")
     const { username } = req.body;
-    console.log(username)
-    console.log(req.body)
-    const user = await User.findOne({ username });
+
+    const user = await User.findOne({ username }).select("-password");
+
     if (!user) {
       return res.status(404).json({ message: "No user with this username" });
     }
@@ -122,7 +120,7 @@ export const searchUserByUsername = async (req, res) => {
   }
 };
 
-// for friend sidebar
+// For Friend Search In Search Bar (In Friend List) For SideBar
 
 export const searchInSidebar = async (req, res) => {
   try {
@@ -210,8 +208,6 @@ export const sendRequest = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    console.log("both user's ids : " , friendUserId , " " , mainUser._id)
-
     if (friendUserId === mainUser._id.toString()) {
       return res
         .status(400)
@@ -219,7 +215,6 @@ export const sendRequest = async (req, res) => {
     }
 
     const friendUser = await User.findById(friendUserId);
-    console.log("friend user : ", friendUser);
     if (!friendUser) {
       return res.status(404).json({ message: "No such user found!" });
     }
@@ -241,27 +236,22 @@ export const sendRequest = async (req, res) => {
     //       request.status === "pending"
     //   );
 
-      const existingRequest = await FriendRequest.findOne({
-        senderId: mainUser._id,
-       receiverId: friendUserId
-      })
-    
-    console.log("exe req : " , existingRequest)
+    const existingRequest = await FriendRequest.findOne({
+      senderId: mainUser._id,
+      receiverId: friendUserId,
+    });
 
     if (existingRequest) {
-      console.log("entered")
       return res
         .status(409)
         .json({ message: `Request already sent | Req Status : Pending` });
     }
-    console.log("out")
+
     const frndReq = new FriendRequest({
       senderId: mainUser._id,
       receiverId: friendUserId,
       status: "pending",
     });
-
-    console.log("Main user friendRequestsSent:", mainUser.friendRequestsSent);
 
     if (!mainUser.friendRequestsSent) {
       mainUser.friendRequestsSent = [];
@@ -270,9 +260,12 @@ export const sendRequest = async (req, res) => {
     await frndReq.save();
     mainUser.friendRequestsSent.push(frndReq._id);
     await mainUser.save();
-
     friendUser.friendRequestsReceived.push(frndReq._id);
     await friendUser.save();
+
+    logger.info(
+      `Friend Request Sent - SenderId: ${mainUser._id} - ReceiverId: ${friendUserId}`
+    );
 
     return res.status(200).json({
       message: `Friend Request Has Been Sent To The User Successfully`,
@@ -296,8 +289,6 @@ export const acceptRequest = async (req, res) => {
       receiverId: mainUser._id.toString(),
       status: "pending",
     });
-
-    console.log(friendRequest);
 
     if (!friendRequest) {
       return res.status(404).json({
@@ -337,6 +328,10 @@ export const acceptRequest = async (req, res) => {
     await mainUser.save();
     await senderUser.save();
 
+    logger.info(
+      `Friend Request Accepted - SenderId: ${friendUserId} - ReceiverId: ${mainUser._id}`
+    );
+
     return res.status(200).json({
       message: "Friend request accepted successfully.",
       senderId: friendUserId,
@@ -346,6 +341,7 @@ export const acceptRequest = async (req, res) => {
     return res.status(500).json({ message: "Server Error" });
   }
 };
+
 /// -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 export const rejectRequest = async (req, res) => {
@@ -361,7 +357,7 @@ export const rejectRequest = async (req, res) => {
 
     if (!friendRequest) {
       return res.status(404).json({
-        message: "Friend request not found or already accepted.",
+        message: "Friend request not found or already accepted/rejected.",
       });
     }
 
@@ -379,6 +375,10 @@ export const rejectRequest = async (req, res) => {
 
     await mainUser.save();
     await senderUser.save();
+
+    logger.info(
+      `Friend Request Rejected - SenderId: ${friendUserId} - ReceiverId: ${mainUser._id}`
+    );
 
     return res.status(200).json({
       message: "Friend request rejected successfully.",
@@ -401,7 +401,6 @@ export const verifyOtp = async (req, res) => {
     if (!otpDoc) {
       return res.status(404).json({ message: "OTP not found" });
     }
-    
 
     if (otpDoc.otp !== otp) {
       logger.warn(`OTP verification failed - userId: ${req.user._id}`);
@@ -439,9 +438,8 @@ export const sendOtpForForgotPass = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString(); // Generate a 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // Save OTP to the database
     const otpDocument = new Otp({
       email: email,
       otp: otp,
@@ -530,6 +528,9 @@ export const sendOtpForForgotPass = async (req, res) => {
       html: htmlContent,
     };
     await transporter.sendMail(mailOptions);
+
+    logger.info(`Forgot Password Event Occured For userId: ${user._id}`);
+
     res.status(200).json({ message: "Email has been sent" });
   } catch (error) {
     console.error("Error in forgot password:", error);
@@ -541,6 +542,12 @@ export const resetPassword = async (req, res) => {
   try {
     const { otp, newPassword, confirmPassword } = req.body;
 
+    const user = await User.findOne({ email: otpDocument.email });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
     const otpDocument = await Otp.findOne({
       otp: otp,
       reason: "Password",
@@ -550,12 +557,13 @@ export const resetPassword = async (req, res) => {
       return res.status(404).json({ message: "OTP not found" });
     }
 
-    // Check if OTP matches
     if (otpDocument.otp !== otp) {
+      logger.warn(
+        `Invalid OTP Entered For Changing The Password - userId: ${user._id}`
+      );
       return res.status(401).json({ message: "Invalid OTP" });
     }
 
-    // Check if new password and confirm password match
     const passwordValidationResult = validatePassword(
       newPassword,
       confirmPassword
@@ -565,11 +573,11 @@ export const resetPassword = async (req, res) => {
         .status(401)
         .json({ message: passwordValidationResult.message });
     }
-    const user = await User.findOne({ email: otpDocument.email });
+    // const user = await User.findOne({ email: otpDocument.email });
 
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
+    // if (!user) {
+    //   return res.status(404).json({ message: "User not found" });
+    // }
 
     // Update user's password
     const salt = await bcrypt.genSalt(10);
@@ -580,7 +588,7 @@ export const resetPassword = async (req, res) => {
     // Delete the OTP document
     await otpDocument.deleteOne();
 
-    // Respond with success message
+    logger.success(`Password Reset Success - userId: ${user._id}`);
     return res.status(200).json({ message: "Password reset successfully" });
   } catch (error) {
     console.error("Error in forgot password:", error);
@@ -595,20 +603,29 @@ export const editProfile = async (req, res) => {
     const { userName, fullName, bio, gender, newPassword, confirmPassword } =
       req.body;
 
+    const changedFields = [];
+    if (userName !== "") changedFields.push(`username: ${userName}`);
+    if (fullName !== "") changedFields.push("fullname");
+    if (bio !== "") changedFields.push("bio");
+    if (gender !== "") changedFields.push("gender");
+    if (newPassword !== "" && confirmPassword !== "")
+      changedFields.push("password");
+
     if (
-      userName === "" ||
-      fullName === "" ||
-      bio === "" ||
-      gender === "" ||
-      newPassword === "" ||
-      confirmPassword === ""
+      (newPassword === "" && confirmPassword !== "") ||
+      (newPassword !== "" && confirmPassword === "")
     ) {
-      return res.status(400).send("All fields should be filled.");
+      return res
+        .status(400)
+        .send("New Password and Confirm Password are required");
     }
 
     const user = await User.findOne({ username: userName });
+    if (user) {
+      return res.status(409).json({ message: "Username is already taken." });
+    }
 
-    if (!user || req.user.username === userName) {
+    if (newPassword !== "" && confirmPassword !== "") {
       const passwordValidationResult = validatePassword(
         newPassword,
         confirmPassword
@@ -620,20 +637,23 @@ export const editProfile = async (req, res) => {
       }
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(newPassword, salt);
-
       user.password = hashedPassword;
-
-      user.username = userName;
-      user.fullname = fullName;
-      user.bio = bio;
-      user.gender = gender;
-
-      await user.save();
-
-      return res.status(200).json({ message: "User has been updated." });
-    } else {
-      return res.status(409).json({ message: "Username is already taken." });
     }
+
+    if (userName !== "") user.username = userName;
+    if (fullName !== "") user.fullname = fullName;
+    if (bio !== "") user.bio = bio;
+    if (gender !== "") user.gender = gender;
+
+    await user.save();
+
+    logger.info(
+      `User Profile Updated - userId: ${
+        user._id
+      }, Changes: ${changedFields.join(" | ")}`
+    );
+
+    return res.status(200).json({ message: "User has been updated." });
   } catch (error) {
     console.error("Error in edit profile:", error);
     return res.status(500).send("Server Error");
@@ -643,26 +663,28 @@ export const editProfile = async (req, res) => {
 // -------------
 export const pendingReq = async (req, res) => {
   try {
-    const userId = req.params.id; 
-    console.log("started")
-    
+    const userId = req.params.id;
+
     const friendRequests = await FriendRequest.find({ receiverId: userId });
 
-    const senderIds = friendRequests.map(request => request.senderId);
+    const senderIds = friendRequests.map((request) => request.senderId);
 
-    const senders = await User.find({ _id: { $in: senderIds } }, 'username profilePic');
+    const senders = await User.find(
+      { _id: { $in: senderIds } },
+      "username profilePic"
+    );
 
-    // Construct the result array
-    const result = senders.map(sender => ({
+    const result = senders.map((sender) => ({
       id: sender._id,
       username: sender.username,
       profilePic: sender.profilePic,
     }));
 
-    console.log("ended")
     return res.status(200).json(result);
   } catch (error) {
     console.log("Error in fetching pending requests", error);
-    return res.status(500).json({ error: "Error in fetching pending requests" });
+    return res
+      .status(500)
+      .json({ error: "Error in fetching pending requests" });
   }
 };
