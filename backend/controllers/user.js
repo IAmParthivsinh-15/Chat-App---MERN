@@ -4,7 +4,7 @@ import Conversation from "../model/conversation.js"
 import nodemailer from "nodemailer";
 import bcrypt from "bcrypt";
 import Otp from "../model/otp.js";
-import genTokenAndCookies from "../utils/genTokenAndCookies.js";
+import {logger} from "../utils/logger.js";
 
 export const validateEmail = (email) => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -392,31 +392,27 @@ export const rejectRequest = async (req, res) => {
 /// -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 export const verifyOtp = async (req, res) => {
   try {
-    console.log("otp server side")
     const { otp } = req.body;
     const otpDoc = await Otp.findOne({
       email: req.user.email,
       reason: "Verification",
     });
-    console.log("existence of otp")
-    console.log(req.user)
 
     if (!otpDoc) {
       return res.status(404).json({ message: "OTP not found" });
     }
 
     if (otpDoc.otp !== otp) {
-      
+      logger.warn(`OTP verification failed - Email: ${req.user.email}`);
       return res.status(401).json({ message: "Invalid OTP" });
     }
 
     await User.updateOne({ email: req.user.email }, { verified: true });
 
     const user = await User.findOne({ email: req.user.email });
-    // const token = genTokenAndCookies(user._id, res);
-
     await otpDoc.deleteOne();
 
+    logger.success(`OTP verification success - Email: ${req.user.email}`);
     return res.status(200).json({ message: "Email verified successfully" });
   } catch (error) {
     console.log("Error in verifyOtp:", error);

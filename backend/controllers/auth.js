@@ -3,20 +3,16 @@ import User from "../model/user.js";
 import genTokenAndCookies from "../utils/genTokenAndCookies.js";
 import Otp from "../model/otp.js";
 import nodemailer from "nodemailer";
-import { v2 as cloudinary } from 'cloudinary';
-
+import { logger } from "../utils/logger.js";
 
 export const validateEmail = (email) => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  // console.log( emailRegex.test(email))
   return emailRegex.test(email);
 };
 
 const validatePassword = (password, confirmPassword) => {
   const passwordRegex = /^(?=.*\d)(?=.*[!@#$%^&*])(?=.*[a-z])(?=.*[A-Z]).{8,}$/;
-  console.log(password, " " , confirmPassword)
   if (!passwordRegex.test(password)) {
-    // console.log()
     return {
       isValid: false,
       error:
@@ -31,8 +27,6 @@ const validatePassword = (password, confirmPassword) => {
 };
 
 export const signup = async (req, res) => {
-  console.log("signing up");
-  // console.log(req.body)
   try {
     const {
       fullname,
@@ -45,17 +39,12 @@ export const signup = async (req, res) => {
       // bio
     } = req.body;
 
-    let {profilePic} = req.body;
-    // console.log("email : " , req.body.email)
-    // console.log(req.body)
+    let { profilePic } = req.body;
 
-    console.log("profilepic started")
-    if(!profilePic){
-     return res.status(401).json({message:"please provide img"})
+    if (!profilePic) {
+      return res.status(401).json({ message: "please provide img" });
     }
-    console.log("profilepic ended")
 
-    console.log("cloudinary started")
     // let result= ""
     // try {
     //  result = await cloudinary?.uploader?.upload(profilePic);
@@ -67,51 +56,32 @@ export const signup = async (req, res) => {
     // const profilePicUrl = result?.secure_url;
     // console.log("cloudinary ended")
 
-
-    // Validate email
-    console.log("email validation started");
     if (!validateEmail(email)) {
-      console.log("in email check")
       return res.status(401).json({ message: "Invalid email format" });
     }
-    console.log("email vali ended")
 
-    // Validate password
-    console.log("pass validation started");
-    
     const passwordValidationResult = validatePassword(
       password,
       confirmPassword
-      );
-      console.log("pass validation checking ended");
+    );
     if (!passwordValidationResult.isValid) {
-      console.log(passwordValidationResult.isValid)
-      return res
-        .status(401)
-        .json({ message: "Passwords do not match" });
+      return res.status(401).json({ message: "Passwords do not match" });
     }
-    console.log("pass validation ended");
 
-
-    console.log(" Check if the user already exists")
     const user = await User.findOne({ username });
     if (user) {
       return res.status(409).json({
         message: `User with this username : "${username}" , Already Exist`,
       });
     }
-    
+
     const emailOfUser = await User.findOne({ email });
     if (emailOfUser && email !== "") {
-      return res.status(422).json({message:"email is in use already "});
+      return res.status(422).json({ message: "email is in use already " });
     }
-    console.log(" Check if the user already exists ended")
 
-    // New Added
-    console.log("otp st")
     const otp = Math.floor(100000 + Math.random() * 900000).toString(); // Generate a 6-digit OTP
 
-    // Save OTP to the database
     const otpDocument = new Otp({
       email: email,
       otp: otp,
@@ -172,55 +142,43 @@ export const signup = async (req, res) => {
       html: htmlContent,
     };
     await transporter.sendMail(mailOptions);
-    console.log("otp sent")
-
 
     //End
-    console.log("salting st")
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
-    console.log("salting end")
 
     // Create a new user instance
-    console.log("user creation st")
-
     const newUser = new User({
       fullname,
       username,
       email,
       password: hashedPassword,
       gender,
-      profilePic
+      profilePic,
       // profilePic: profilePicUrl,
       // bio
     });
-    console.log("user creation done")
 
-
-    // Save the user to the database
-    // console.log("try block st")
     try {
-      console.log("in try block st")
       await newUser.save();
 
-      // Generate tokens and send the response
-      console.log("gen cooki")
-      const token=genTokenAndCookies(newUser._id, res);
-      console.log("gen cooki ended ")
+      const token = genTokenAndCookies(newUser._id, res);
 
-      // Send the user details in the response
+      logger.success(
+        `Signup Success - UserId=${newUser._id} - Username=${username} [VERIFICATION PENDING]`
+      );
+
       return res.status(201).json({
         _id: newUser._id,
         fullname: newUser.fullname,
         username: newUser.username,
         email: newUser.email,
         profilePic: newUser.profilePic,
-        message:"Now , Verify Your Email",
-        token
+        message: "Now , Verify Your Email",
+        token,
         // bio : newUser.bio ;
       });
     } catch (error) {
-      console.log("Error saving user:", error);
       return res.status(500).json({ message: "Failed to create user" });
     }
   } catch (error) {
@@ -233,41 +191,32 @@ export const signup = async (req, res) => {
 
 export const login = async (req, res) => {
   try {
-    console.log("started login")
     const { username, password } = req.body;
+    logger.info(`Login attempt - Username: ${username}`);
     const user = await User.findOne({ username });
 
-    console.log("user searching")
     if (!user) {
+      logger.warn(`Login failed - User does not exist - Username: ${username}`);
       return res.status(400).json({ message: "User does not exist" });
     }
-    console.log("done")
-
 
     if (!user.verified) {
+      logger.warn(`Login failed - User not verified - Username: ${username}`);
       return res.status(400).json({ message: "User is not verified" });
     }
-
-    console.log("Pass verification")
 
     const isCorrectPassword = await bcrypt.compare(
       password,
       user.password || ""
     );
-    console.log("done")
-
 
     if (!isCorrectPassword) {
+      logger.warn(`Login failed - Incorrect password - Username: ${username}`);
       return res.status(400).json({ error: "Incorrect password" });
     }
-
-    console.log("authentication")
-
     const token = genTokenAndCookies(user._id, res);
-    
-    console.log("done")
 
-    console.log("response")
+    logger.success(`Login success - UserId=${user._id} - Username=${username}`);
 
     return res.status(200).json({
       _id: user._id,
@@ -275,18 +224,21 @@ export const login = async (req, res) => {
       username: user.username,
       profilePic: user.profilePic,
       token,
-
     });
-
   } catch (error) {
-    console.log("Error in login(auth.js/controller): ", error);
+    logger.error(
+      `Login error - Username=${req.body.username} - Error: ${error.message}`
+    );
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };
 
+// -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 export const logout = async (req, res) => {
   try {
     res.cookie("jwt", "", { maxAge: 0 });
+    logger.info(`Logout success - UserId=${req.userId}`);
     res.status(200).json({ message: `user has been logout succesfully ` });
   } catch (error) {
     console.log("Error in Logout(auth.js/controller): ", error);
