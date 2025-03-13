@@ -1,6 +1,7 @@
 import Conversation from "../model/conversation.js";
 import Message from "../model/message.js";
 import User from "../model/user.js";
+import { logger } from "../utils/logger.js";
 
 export const sendMessage = async (req, res) => {
   try {
@@ -60,6 +61,8 @@ export const sendMessage = async (req, res) => {
       senderId: senderId,
     };
 
+    logger.info(`Message sent from ${senderId} to ${receiverId}`);
+
     await Promise.all([conversation.save(), newMessage.save()]);
 
     res.status(201).json(newMessage);
@@ -69,88 +72,11 @@ export const sendMessage = async (req, res) => {
   }
 };
 
-// export const sendMessage = async (req, res) => {
-//   try {
-//     const { message } = req.body;
-//     const { id: receiverId } = req.params;
-//     const senderId = req.user._id;
-//     // let { img } = req.body;
-
-//     console.log("req.user ---------------------", req.user);
-//     console.log("sender id ------------------", senderId);
-
-//     const senderUser = await User.findById(senderId).populate("friendList");
-//     const receiverInFriendList = senderUser?.friendList?.some(
-//       (friend) => friend._id.toString() == receiverId
-//     );
-
-//     if (!receiverInFriendList) {
-//       return res.status(403).json({
-//         message: `Receiver is not in the friend list.
-//     senderId:${senderId} --- > receiverId: ${receiverId}`,
-//       });
-//     }
-
-//     let conversation = await Conversation.findOne({
-//       participants: { $all: [senderId, receiverId] },
-//     });
-
-//     if (!conversation) {
-//       //Create new one
-//       conversation = await Conversation.create({
-//         participants: [senderId, receiverId],
-//       });
-//     }
-
-//     // if (img) {
-//     // 	const uploadedResponse = await cloudinary.uploader.upload(img);
-//     // 	img = uploadedResponse.secure_url;
-//     // }
-
-//     const newMessage = new Message({
-//       senderId: senderId,
-//       receiverId,
-//       message,
-//       // img: img || "",
-//     });
-
-//     if (newMessage) {
-//       conversation.messages.push(newMessage._id);
-//     }
-
-//     // await conversation.save();
-//     // await newMessage.save();
-
-//     // await Promise.all([conversation.save(), newMessage.save()]);
-
-//     await Promise.all([
-//       newMessage.save(),
-//       User.updateOne({
-//         lastlastMessage: {
-//           message: message,
-//           senderId: senderId,
-//         },
-//       }),
-//     ]);
-
-//     res.status(201).json(newMessage);
-//   } catch (error) {
-//     console.error("Error in sendMessage controller:", error);
-//     return res
-//       .status(500)
-//       .json({ message: "Internal server error", error: error.message });
-//   }
-// };
-
 // for getting all the messages of one user with a perticuler user
-
 export const getMessage = async (req, res) => {
   try {
     const { id: userToChatId } = req.params;
     const senderId = req.user._id; // user id
-    console.log("req.user :------------------------", req.user);
-
-    console.log("sender id in getmsg ------------------", senderId);
     const conversation = await Conversation.findOne({
       participants: { $all: [senderId, userToChatId] },
     }).populate("messages");

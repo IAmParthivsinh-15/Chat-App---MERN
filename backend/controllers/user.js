@@ -401,9 +401,10 @@ export const verifyOtp = async (req, res) => {
     if (!otpDoc) {
       return res.status(404).json({ message: "OTP not found" });
     }
+    
 
     if (otpDoc.otp !== otp) {
-      logger.warn(`OTP verification failed - Email: ${req.user.email}`);
+      logger.warn(`OTP verification failed - userId: ${req.user._id}`);
       return res.status(401).json({ message: "Invalid OTP" });
     }
 
@@ -412,7 +413,7 @@ export const verifyOtp = async (req, res) => {
     const user = await User.findOne({ email: req.user.email });
     await otpDoc.deleteOne();
 
-    logger.success(`OTP verification success - Email: ${req.user.email}`);
+    logger.success(`OTP verification success - UserId: ${user._id}`);
     return res.status(200).json({ message: "Email verified successfully" });
   } catch (error) {
     console.log("Error in verifyOtp:", error);
