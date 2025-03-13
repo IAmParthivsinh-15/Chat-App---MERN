@@ -90,7 +90,7 @@ npm run dev
 ![Log In Form](https://github.com/user-attachments/assets/8e8a08f9-57e4-403d-93d1-6bdca6407af4)
 
 ### Signup Form
-![image](https://github.com/user-attachments/assets/ecee6766-7334-4f99-9a23-09aa8bc1e111)
+![image](https://github.com/user-attachments/assets/bc856c66-cf6a-4008-9348-e1b4af3ad881)
 
 ### Email Verification
 
