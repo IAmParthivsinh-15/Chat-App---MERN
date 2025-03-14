@@ -4,6 +4,8 @@ import genTokenAndCookies from "../utils/genTokenAndCookies.js";
 import Otp from "../model/otp.js";
 import nodemailer from "nodemailer";
 import { logger } from "../utils/logger.js";
+import sendMessageToKafka from "../utils/kafkaProducer.js";
+import jwt from "jsonwebtoken";
 
 export const validateEmail = (email) => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -82,7 +84,7 @@ export const signup = async (req, res) => {
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString(); // Generate a 6-digit OTP
 
-    const otpDocument = new Otp({
+    const otpDocument = await new Otp({
       email: email,
       otp: otp,
       reason: "Verification",
@@ -143,6 +145,8 @@ export const signup = async (req, res) => {
     };
     await transporter.sendMail(mailOptions);
 
+    //Kafka Email Sent
+
     //End
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
@@ -161,6 +165,18 @@ export const signup = async (req, res) => {
 
     try {
       await newUser.save();
+
+      await sendMessageToKafka("email-events", {
+        username,
+        userId: newUser._id,
+        type: "OTP Verification For Signup",
+      });
+      // Kafka User Signup Events
+      await sendMessageToKafka("user-signup", {
+        userId: newUser._id,
+        username,
+        action: "Signup",
+      });
 
       const token = genTokenAndCookies(newUser._id, res);
 
@@ -237,11 +253,36 @@ export const login = async (req, res) => {
 
 export const logout = async (req, res) => {
   try {
+    const token = req.cookies.jwt;
+    if (!token) {
+      return res
+        .status(401)
+        .json({ message: "Unauthorized - No token provided" });
+    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (!decoded || !decoded.userId) {
+      return res.status(401).json({ message: "Invalid token" });
+    }
+
+    const userId = decoded.userId;
+    const user = await User.findById(userId);
+    const username = user.username;
+
     res.cookie("jwt", "", { maxAge: 0 });
-    logger.info(`Logout success - UserId=${req.userId}`);
-    res.status(200).json({ message: `user has been logout succesfully ` });
+
+    logger.info(`Logout success - UserId=${userId}, Username=${username}`);
+
+    await sendMessageToKafka("user-logout", {
+      userId: userId,
+      username: username,
+      action: "Logout",
+    });
+
+    res.status(200).json({
+      message: `User has been logged out successfully: ${userId}, Username: ${username}`,
+    });
   } catch (error) {
-    console.log("Error in Logout(auth.js/controller): ", error);
+    console.error("Error in Logout(auth.js/controller):", error);
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };

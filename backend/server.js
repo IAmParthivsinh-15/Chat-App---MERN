@@ -12,6 +12,9 @@ import userRoutes from "./routes/user.js";
 import { v2 as cloudinary } from "cloudinary";
 import { logger } from "./utils/logger.js";
 
+import { connectKafka } from "./utils/kafkaConfig.js";
+import "./utils/kafkaConsumer.js";
+
 dotenv.config();
 
 cloudinary.config({
@@ -55,7 +58,8 @@ const connectDatabase = async () => {
   }
 };
 
-app.listen(PORT, () => {
-  connectDatabase();
+app.listen(PORT, async () => {
+  await connectDatabase();
+  await connectKafka();
   console.log(`🚀 Server is running on port ${PORT}`);
 });

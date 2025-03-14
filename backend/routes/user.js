@@ -31,7 +31,7 @@ router.post("/acceptrequest/:friendUserId", protectRoutes, acceptRequest);
 router.post("/rejectrequest/:friendUserId", protectRoutes, rejectRequest);
 // PATCH
 router.patch("/verifyotp", protectRoutes, verifyOtp);
-router.patch("/otpforUpPass", protectRoutes, sendOtpForForgotPass);
+router.patch("/otpforUpPass", sendOtpForForgotPass);
 router.patch("/resetpassword", resetPassword);
 router.patch("/updateProfile", protectRoutes, editProfile);
 

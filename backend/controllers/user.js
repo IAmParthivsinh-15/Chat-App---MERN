@@ -5,6 +5,8 @@ import nodemailer from "nodemailer";
 import bcrypt from "bcrypt";
 import Otp from "../model/otp.js";
 import { logger } from "../utils/logger.js";
+import sendMessageToKafka from "../utils/kafkaProducer.js";
+import jwt from "jsonwebtoken";
 
 export const validateEmail = (email) => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -267,6 +269,14 @@ export const sendRequest = async (req, res) => {
       `Friend Request Sent - SenderId: ${mainUser._id} - ReceiverId: ${friendUserId}`
     );
 
+    //Sending To Kafka Producer
+    await sendMessageToKafka("friend-request-send", {
+      senderId: mainUser._id,
+      receiverId: friendUserId,
+      senderName: mainUser.username,
+      receiverName: friendUser.username,
+    });
+
     return res.status(200).json({
       message: `Friend Request Has Been Sent To The User Successfully`,
     });
@@ -275,6 +285,7 @@ export const sendRequest = async (req, res) => {
     return res.status(500).json({ message: "Server Error" });
   }
 };
+
 /// -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 export const acceptRequest = async (req, res) => {
@@ -282,7 +293,7 @@ export const acceptRequest = async (req, res) => {
     const { friendUserId } = req.params;
     const mainUser = req.user;
 
-    console.log(mainUser._id.toString(), friendUserId);
+    // console.log(mainUser._id.toString(), friendUserId);
 
     const friendRequest = await FriendRequest.findOne({
       senderId: friendUserId,
@@ -315,8 +326,8 @@ export const acceptRequest = async (req, res) => {
       profilePic: mainUser.profilePic,
     });
 
-    console.log(mainUser.friendRequestsReceived);
-    console.log(senderUser.friendRequestsSent);
+    // console.log(mainUser.friendRequestsReceived);
+    // console.log(senderUser.friendRequestsSent);
 
     mainUser.friendRequestsReceived = mainUser.friendRequestsReceived.filter(
       (request) => request.toString() !== friendRequest._id.toString()
@@ -331,6 +342,14 @@ export const acceptRequest = async (req, res) => {
     logger.info(
       `Friend Request Accepted - SenderId: ${friendUserId} - ReceiverId: ${mainUser._id}`
     );
+
+    // Kafka Accepting Request
+    await sendMessageToKafka("friend-request-accept", {
+      senderId: mainUser._id,
+      receiverId: friendUserId,
+      senderName: mainUser.username,
+      receiverName: senderUser.username,
+    });
 
     return res.status(200).json({
       message: "Friend request accepted successfully.",
@@ -380,6 +399,14 @@ export const rejectRequest = async (req, res) => {
       `Friend Request Rejected - SenderId: ${friendUserId} - ReceiverId: ${mainUser._id}`
     );
 
+    // Kafka Reject Request
+    await sendMessageToKafka("friend-request-reject", {
+      senderId: mainUser._id,
+      receiverId: friendUserId,
+      senderName: mainUser.username,
+      receiverName: senderUser.username,
+    });
+
     return res.status(200).json({
       message: "Friend request rejected successfully.",
       senderId: friendUserId,
@@ -393,6 +420,7 @@ export const rejectRequest = async (req, res) => {
 export const verifyOtp = async (req, res) => {
   try {
     const { otp } = req.body;
+
     const otpDoc = await Otp.findOne({
       email: req.user.email,
       reason: "Verification",
@@ -413,6 +441,13 @@ export const verifyOtp = async (req, res) => {
     await otpDoc.deleteOne();
 
     logger.success(`OTP verification success - UserId: ${user._id}`);
+
+    // Kafka Email Verifing
+    await sendMessageToKafka("otp-verification", {
+      username: user.username,
+      userId: user._id,
+    });
+
     return res.status(200).json({ message: "Email verified successfully" });
   } catch (error) {
     console.log("Error in verifyOtp:", error);
@@ -531,6 +566,13 @@ export const sendOtpForForgotPass = async (req, res) => {
 
     logger.info(`Forgot Password Event Occured For userId: ${user._id}`);
 
+    // kafka for sending otp for forgot password
+    await sendMessageToKafka("email-events", {
+      username: user.username,
+      userId: user._id,
+      type: "OTP Verification For Password Reset",
+    });
+
     res.status(200).json({ message: "Email has been sent" });
   } catch (error) {
     console.error("Error in forgot password:", error);
@@ -540,9 +582,8 @@ export const sendOtpForForgotPass = async (req, res) => {
 
 export const resetPassword = async (req, res) => {
   try {
-    const { otp, newPassword, confirmPassword } = req.body;
-
-    const user = await User.findOne({ email: otpDocument.email });
+    const { email, otp, newPassword, confirmPassword } = req.body;
+    const user = await User.findOne({ email: email });
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -589,6 +630,14 @@ export const resetPassword = async (req, res) => {
     await otpDocument.deleteOne();
 
     logger.success(`Password Reset Success - userId: ${user._id}`);
+
+    // Kafka logs for password reset
+    await sendMessageToKafka("password-reset", {
+      userId: user._id,
+      status: "Password Reset",
+      type: "Forgot Pass",
+    });
+
     return res.status(200).json({ message: "Password reset successfully" });
   } catch (error) {
     console.error("Error in forgot password:", error);
@@ -620,10 +669,14 @@ export const editProfile = async (req, res) => {
         .send("New Password and Confirm Password are required");
     }
 
-    const user = await User.findOne({ username: userName });
-    if (user) {
+    const tempUser = await User.findOne({ username: userName });
+    if (tempUser) {
       return res.status(409).json({ message: "Username is already taken." });
     }
+
+    const token = req.cookies.jwt;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.userId);
 
     if (newPassword !== "" && confirmPassword !== "") {
       const passwordValidationResult = validatePassword(
@@ -637,7 +690,17 @@ export const editProfile = async (req, res) => {
       }
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(newPassword, salt);
+
       user.password = hashedPassword;
+
+      console.log("Password Changed");
+
+      // Send Kafka message for password change
+      await sendMessageToKafka("password-reset", {
+        userId: user._id,
+        status: "Password Reset By Authenticated User",
+        type: "Change Pass",
+      });
     }
 
     if (userName !== "") user.username = userName;
@@ -652,6 +715,15 @@ export const editProfile = async (req, res) => {
         user._id
       }, Changes: ${changedFields.join(" | ")}`
     );
+
+    // Send Kafka message for profile update
+    await sendMessageToKafka("user-profile-updated", {
+      userId: user._id,
+      username: userName || user.username,
+      fullname: fullName || user.fullname,
+      bio: bio || user.bio,
+      gender: gender || user.gender,
+    });
 
     return res.status(200).json({ message: "User has been updated." });
   } catch (error) {
